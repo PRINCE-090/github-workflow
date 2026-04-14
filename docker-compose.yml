@@ -1,0 +1,43 @@
+# ============================================================
+# Docker Compose Configuration
+# Usage:
+#   Dev:        docker compose up
+#   Production: docker compose -f docker-compose.yml -f docker-compose.prod.yml up
+# ============================================================
+
+services:
+
+  # ── React App ─────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production           # Use final production stage
+      args:
+        REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:3001}
+        REACT_APP_VERSION: ${APP_VERSION:-1.0.0}
+        NODE_ENV: production
+    image: react-app:${APP_VERSION:-latest}
+    container_name: react-app
+    ports:
+      - "8080:8080"
+    environment:
+      - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:3001}
+      - REACT_APP_VERSION=${APP_VERSION:-1.0.0}
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - app-network
+    labels:
+      - "com.example.service=frontend"
+      - "com.example.version=${APP_VERSION:-1.0.0}"
+
+networks:
+  app-network:
+    driver: bridge
